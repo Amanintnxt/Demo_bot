@@ -1,4 +1,5 @@
 import os
+import asyncio
 from flask import Flask, request, Response
 from botbuilder.core import BotFrameworkAdapter, BotFrameworkAdapterSettings, TurnContext
 from botbuilder.schema import Activity
@@ -13,53 +14,44 @@ APP_PASSWORD = os.environ.get("MicrosoftAppPassword", "")
 adapter_settings = BotFrameworkAdapterSettings(APP_ID, APP_PASSWORD)
 adapter = BotFrameworkAdapter(adapter_settings)
 
-# -----------------------------
-# HEALTH CHECK FOR RENDER
-# -----------------------------
+# Health check
 
 
 @app.route("/", methods=["GET"])
 def home():
-    return "⚡ Python bot is running!", 200
+    return "⚡ Bot is running!", 200
 
-# -----------------------------
-# SIMPLE BOT LOGIC
-# -----------------------------
+# Bot logic
 
 
 async def on_turn(turn_context: TurnContext):
     if turn_context.activity.type == "message":
         await turn_context.send_activity(f"You said: {turn_context.activity.text}")
     else:
-        await turn_context.send_activity("👋 Hello! Simple Python Bot is running.")
+        await turn_context.send_activity("👋 Hello from Render bot!")
 
-# -----------------------------
-# /api/messages ENDPOINT
-# -----------------------------
+# Messaging endpoint
 
 
 @app.route("/api/messages", methods=["POST"])
 def messages():
-    if "application/json" in request.headers.get("Content-Type", ""):
-        body = request.json
-    else:
+    if "application/json" not in request.headers.get("Content-Type", ""):
         return Response(status=415)
 
+    body = request.json
     activity = Activity().deserialize(body)
     auth_header = request.headers.get("Authorization", "")
 
     try:
-        task = adapter.process_activity(activity, auth_header, on_turn)
+        # Run async adapter inside Flask sync endpoint
+        asyncio.run(adapter.process_activity(activity, auth_header, on_turn))
         return Response(status=202)
     except Exception as e:
-        print("Error:", e)
+        print("ERROR:", e)
         return Response(status=500)
 
 
-# -----------------------------
-# RUN APP (LOCAL + RENDER)
-# -----------------------------
+# Start server
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 3978))
-    print(f"Bot running at http://0.0.0.0:{port}/api/messages")
     app.run(host="0.0.0.0", port=port)
