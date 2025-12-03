@@ -3,18 +3,23 @@ from aiohttp import web
 from botbuilder.core import BotFrameworkAdapterSettings, BotFrameworkAdapter, TurnContext
 from botbuilder.core.integration import aiohttp_error_middleware
 from botbuilder.schema import Activity
+from botframework.connector.auth import MicrosoftAppCredentials
 
 # Get credentials from environment
 APP_ID = os.environ.get("MicrosoftAppId")
 APP_PASSWORD = os.environ.get("MicrosoftAppPassword")
-# Required for single-tenant
 TENANT_ID = os.environ.get("MicrosoftAppTenantId")
 
-# Configure adapter with tenant ID for single-tenant authentication
+# Trust Teams service URLs to prevent authentication issues
+MicrosoftAppCredentials.trust_service_url("https://smba.trafficmanager.net/")
+MicrosoftAppCredentials.trust_service_url(
+    "https://smba.trafficmanager.net/teams/")
+
+# Configure adapter with auth_tenant_id for single-tenant authentication
 settings = BotFrameworkAdapterSettings(
     app_id=APP_ID,
     app_password=APP_PASSWORD,
-    tenant_id=TENANT_ID  # Critical for single-tenant bots
+    auth_tenant_id=TENANT_ID  # This fixes the authentication issue
 )
 adapter = BotFrameworkAdapter(settings)
 
