@@ -18,9 +18,10 @@ MicrosoftAppCredentials.trust_service_url(
 # Configure adapter with auth_tenant_id for single-tenant authentication
 settings = BotFrameworkAdapterSettings(
     app_id=APP_ID,
-    app_password=APP_PASSWORD,
-    auth_tenant_id=TENANT_ID  # This fixes the authentication issue
+    app_password=APP_PASSWORD
 )
+# Set auth_tenant_id as an attribute (not a constructor parameter)
+settings.auth_tenant_id = TENANT_ID
 adapter = BotFrameworkAdapter(settings)
 
 
