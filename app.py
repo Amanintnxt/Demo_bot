@@ -8,20 +8,17 @@ from botframework.connector.auth import MicrosoftAppCredentials
 # Get credentials from environment
 APP_ID = os.environ.get("MicrosoftAppId")
 APP_PASSWORD = os.environ.get("MicrosoftAppPassword")
-TENANT_ID = os.environ.get("MicrosoftAppTenantId")
 
 # Trust Teams service URLs to prevent authentication issues
 MicrosoftAppCredentials.trust_service_url("https://smba.trafficmanager.net/")
 MicrosoftAppCredentials.trust_service_url(
     "https://smba.trafficmanager.net/teams/")
 
-# Configure adapter with auth_tenant_id for single-tenant authentication
+# Configure adapter for multi-tenant authentication
 settings = BotFrameworkAdapterSettings(
     app_id=APP_ID,
     app_password=APP_PASSWORD
 )
-# Set auth_tenant_id as an attribute (not a constructor parameter)
-settings.auth_tenant_id = TENANT_ID
 adapter = BotFrameworkAdapter(settings)
 
 # Create Flask app
@@ -56,7 +53,7 @@ def messages():
 @app.route("/", methods=["GET"])
 def health_check():
     """Health check endpoint"""
-    return "Bot is running. with gunicorn"
+    return "Bot is running."
 
 
 if __name__ == "__main__":
