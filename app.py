@@ -1,7 +1,7 @@
 import os
-from aiohttp import web
+import asyncio
+from flask import Flask, request, Response
 from botbuilder.core import BotFrameworkAdapterSettings, BotFrameworkAdapter, TurnContext
-from botbuilder.core.integration import aiohttp_error_middleware
 from botbuilder.schema import Activity
 from botframework.connector.auth import MicrosoftAppCredentials
 
@@ -24,6 +24,9 @@ settings = BotFrameworkAdapterSettings(
 settings.auth_tenant_id = TENANT_ID
 adapter = BotFrameworkAdapter(settings)
 
+# Create Flask app
+app = Flask(__name__)
+
 
 async def on_turn(turn_context: TurnContext):
     """Handle incoming activities"""
@@ -33,26 +36,29 @@ async def on_turn(turn_context: TurnContext):
         await turn_context.send_activity("👋 Bot connected successfully!")
 
 
-async def messages(req: web.Request):
+@app.route("/api/messages", methods=["POST"])
+def messages():
     """Handle messages endpoint"""
-    if "application/json" not in req.headers.get("Content-Type", ""):
-        return web.Response(status=415)
+    if "application/json" not in request.headers.get("Content-Type", ""):
+        return Response("Unsupported Media Type", status=415)
 
-    body = await req.json()
-    activity = Activity().deserialize(body)
-    auth_header = req.headers.get("Authorization", "")
+    activity = Activity().deserialize(request.json)
+    auth_header = request.headers.get("Authorization", "")
 
-    # Process activity with authentication
-    await adapter.process_activity(activity, auth_header, on_turn)
-    return web.Response(status=202)
+    async def process():
+        await adapter.process_activity(activity, auth_header, on_turn)
+
+    # Run async function in event loop
+    asyncio.run(process())
+    return Response(status=200)
 
 
-# Create app
-app = web.Application(middlewares=[aiohttp_error_middleware])
-app.router.add_post("/api/messages", messages)
-app.router.add_get("/", lambda req: web.Response(text="Bot is running."))
+@app.route("/", methods=["GET"])
+def health_check():
+    """Health check endpoint"""
+    return "Bot is running. with gunicorn"
 
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 3978))
-    web.run_app(app, host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port)
